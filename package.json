@@ -1,0 +1,31 @@
+{
+  "name": "ykst_mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Treehole/YKST gRPC-Web APIs",
+  "main": "src/index.js",
+  "bin": {
+    "ykst-treehole-mcp": "src/index.js"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "smoke": "node scripts/smoke.js",
+    "save-token": "node scripts/save-token.js",
+    "login": "node scripts/login-capture-web-redirect.js",
+    "login-web": "node scripts/open-login.js",
+    "login-local-callback": "node scripts/login-helper.js",
+    "login-capture": "node scripts/login-capture-web-redirect.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "google-protobuf": "^4.0.2",
+    "selfsigned": "^5.5.0",
+    "zod": "^4.4.3"
+  }
+}

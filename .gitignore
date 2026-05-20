@@ -1,0 +1,20 @@
+node_modules/
+.treehole-session.json
+.env
+.env.*
+*.log
+npm-debug.log*
+.DS_Store
+
+# Local browser/login state
+.tmp-chrome-login/
+
+# Reverse-engineering inputs, outputs, and downloaded tools
+*.apk
+_external/
+_tools/
+_publish/
+
+# Build/test outputs
+coverage/
+dist/
