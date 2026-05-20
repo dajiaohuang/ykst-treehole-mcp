@@ -17,7 +17,7 @@ This repository contains a Node.js MCP server for Treehole/YKST gRPC-Web APIs.
 - Install dependencies: `npm install`
 - Start the MCP server: `npm start`
 - Run the authenticated smoke check: `npm run smoke`
-- Start the captured production OAuth login flow: `npm run login`
+- Start the browser URL watcher login flow: `npm run login`
 - Save an existing session token manually: `npm run save-token`
 
 ## Safety And Privacy
@@ -27,6 +27,7 @@ This repository contains a Node.js MCP server for Treehole/YKST gRPC-Web APIs.
 - Keep write tools guarded by `confirm: true`.
 - Before publishing or sharing screenshots/output, remove active identity names, user ids, account names, private thread contents, and token previews.
 - Treat `TREEHOLE_SESSION`, `TREEHOLE_TOKEN`, and `TREEHOLE_SESSION_FILE` as local-only configuration.
+- The default login flow reads only the isolated Chrome tab URL and must not print the OAuth callback code.
 
 ## Development Notes
 

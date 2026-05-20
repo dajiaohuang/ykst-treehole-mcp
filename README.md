@@ -1,6 +1,16 @@
 # ykst-treehole-mcp
 
-MCP server for `web.treehole.space` / `treehole.space`, based on the recovered gRPC-Web protobuf client from the web bundle and APK.
+MCP server for Treehole / YKST (`web.treehole.space` / `treehole.space`). It wraps the recovered gRPC-Web protobuf API as tools that agents can call after you log in locally.
+
+Chinese documentation: [README_CN.md](README_CN.md)
+
+## Features
+
+- One-command browser login: the script opens an isolated Chrome window, waits until jAccount redirects to a URL containing `code=...`, exchanges the code, and saves the local session.
+- 51 MCP tools for auth, site metadata, categories, tags, identities, threads, posts, notifications, subscriptions, upload/download URLs, check-in, settings, reports, ratings, favorites, and appreciation.
+- Write operations require `confirm: true`.
+- Stdio transport for normal MCP clients and optional Streamable HTTP transport for Claude Code or other HTTP clients.
+- Session and reverse-engineering artifacts are ignored by git.
 
 ## Install
 
@@ -8,62 +18,78 @@ MCP server for `web.treehole.space` / `treehole.space`, based on the recovered g
 npm install
 ```
 
+## Login
+
+```powershell
+npm run login
+```
+
+The command opens an isolated Chrome profile. Complete jAccount login in that window. When the browser reaches `https://web.treehole.space/auth/jaccount?code=...`, the script reads the URL through Chrome's local debugging endpoint, exchanges the OAuth code through the Treehole RPC host, and writes `.treehole-session.json`.
+
+Useful environment variables:
+
+- `CHROME_PATH`: path to `chrome.exe` if Chrome is not auto-detected
+- `TREEHOLE_LOGIN_TIMEOUT_MS`: login wait timeout, default `180000`
+- `TREEHOLE_LOGIN_CHROME_PROFILE`: isolated Chrome profile path, default `.tmp-chrome-login`
+- `TREEHOLE_RPC_HOST`: default `https://proxy.treehole.qaq.ac.cn`
+- `TREEHOLE_SESSION_FILE`: custom local session file
+
+Fallbacks:
+
+```powershell
+npm run login-capture   # legacy local HTTPS callback capture
+npm run save-token      # paste an existing treehole_session token
+```
+
 ## Run
+
+Stdio, for normal MCP clients:
 
 ```powershell
 npm start
 ```
 
-## Login
-
-Preferred flow:
-
-1. Run `npm run login`.
-2. Complete jAccount login in the isolated Chrome window it opens.
-3. The local callback captures `https://web.treehole.space/auth/jaccount?code=...`, exchanges it through `https://proxy.treehole.qaq.ac.cn`, and saves `.treehole-session.json`.
-
-This is the default because the production web app currently calls a broken browser RPC host and may fail to write `treehole_session`.
-
-The direct `treehole_login_with_oauth_code` and `treehole_login_with_callback_url` tools are kept for cases where a usable production callback code/URL is available. Codes minted for a local redirect URI do not currently work because the Treehole backend token exchange expects the production web redirect URI.
-
-Fallback web flow:
+HTTP, useful for Claude Code:
 
 ```powershell
-npm run login-web
+node src/index.js --port 38991
 ```
 
-If the web app successfully writes a cookie, copy `treehole_session` and run:
+Health check:
 
 ```powershell
-npm run save-token
+Invoke-RestMethod http://127.0.0.1:38991/health
 ```
 
-If you already have a valid session token, call `treehole_save_session_token`.
+## Client Configuration
 
-After logging in on `https://web.treehole.space/`, you can also save the browser session manually:
+Stdio example:
 
-1. Open Chrome DevTools on `https://web.treehole.space/`.
-2. Go to Application -> Cookies -> `https://web.treehole.space`.
-3. Copy the value of `treehole_session`.
-4. Run:
-
-```powershell
-npm run save-token
+```json
+{
+  "mcpServers": {
+    "ykst-treehole": {
+      "command": "node",
+      "args": ["D:/repo/ykst_mcp/src/index.js"],
+      "cwd": "D:/repo/ykst_mcp"
+    }
+  }
+}
 ```
 
-Paste the token when prompted.
+HTTP example:
 
-The session is stored in `.treehole-session.json`, which is ignored by git. You can also use:
+```json
+{
+  "mcpServers": {
+    "ykst-treehole": {
+      "url": "http://127.0.0.1:38991/mcp"
+    }
+  }
+}
+```
 
-- `TREEHOLE_SESSION` or `TREEHOLE_TOKEN`
-- `TREEHOLE_RPC_HOST` defaults to `https://proxy.treehole.qaq.ac.cn`
-- `TREEHOLE_SESSION_FILE`
-
-## Privacy
-
-This project intentionally keeps login state local. Do not commit `.treehole-session.json`, copied cookies, OAuth callback codes, APK inputs, decoded APK output, or personal identity/account names. Write tools require `confirm: true`.
-
-## Tools
+## Tool Groups
 
 Auth/session:
 
@@ -134,14 +160,24 @@ Account utilities:
 - `treehole_get_punishments`
 - `treehole_update_setting`
 
-Write operations require `confirm: true`.
+## Privacy
 
-## Login Capture Details
+Login state stays local. Do not commit `.treehole-session.json`, copied cookies, OAuth callback codes, APK files, decoded APK output, downloaded tools, or personal identity/account names.
 
-`npm run login` runs the same production OAuth redirect URI that Treehole expects, but captures it in an isolated Chrome profile:
+The ignored local artifacts include:
+
+- `.treehole-session.json`
+- `.env*`
+- `.tmp-chrome-login/`
+- `*.apk`
+- `_external/`
+- `_tools/`
+- `_publish/`
+
+## Development
 
 ```powershell
-npm run login
+npm run smoke
 ```
 
-The script maps only `web.treehole.space` in that Chrome process to a temporary local HTTPS callback, captures the OAuth `code`, exchanges it through the working RPC host, and saves `.treehole-session.json`. The default browser profile and system hosts file are not changed.
+`npm run smoke` requires a valid local session. It verifies the gRPC-Web transport, auth summary, and basic read RPCs.
