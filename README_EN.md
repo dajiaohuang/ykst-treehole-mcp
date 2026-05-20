@@ -176,6 +176,16 @@ Account utilities:
 - `treehole_get_punishments`
 - `treehole_update_setting`
 
+## Bundled Skill
+
+This repository includes a Codex skill:
+
+- `skills/ykst-treehole-mcp/SKILL.md`
+- `skills/ykst-treehole-mcp/references/site-rules.md`
+- `skills/ykst-treehole-mcp/references/tool-map.md`
+
+The skill guides agents to operate this MCP safely and records checked YKST station-rule notes in `site-rules.md`. Current rule sources include station topics [`#16501`](https://web.treehole.space/thread/16501) (no contact information or solicitation of contact information) and [`#5561`](https://web.treehole.space/thread/5561) (no political discussion).
+
 ## Privacy
 
 Login state stays local. Do not commit `.treehole-session.json`, copied cookies, OAuth callback codes, APK files, decoded APK output, downloaded tools, or personal identity/account names.

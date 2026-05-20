@@ -1,0 +1,4 @@
+interface:
+  display_name: "YKST Treehole MCP"
+  short_description: "Operate Treehole safely through this MCP"
+  default_prompt: "Use $ykst-treehole-mcp to read or write Treehole content safely through the local MCP server."

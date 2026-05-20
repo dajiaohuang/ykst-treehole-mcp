@@ -176,6 +176,16 @@ HTTP 客户端示例：
 - `treehole_get_punishments`
 - `treehole_update_setting`
 
+## 内置 Skill
+
+仓库里包含一套 Codex skill：
+
+- `skills/ykst-treehole-mcp/SKILL.md`
+- `skills/ykst-treehole-mcp/references/site-rules.md`
+- `skills/ykst-treehole-mcp/references/tool-map.md`
+
+这个 skill 用于指导 agent 安全调用本 MCP，并把已确认的 YKST 站务规则整理进 `site-rules.md`。目前收录的站规来源包括值班室/站务主题：[`#16501`](https://web.treehole.space/thread/16501)（禁止发布或诱导发布联系方式）和 [`#5561`](https://web.treehole.space/thread/5561)（禁止政治相关讨论）。
+
 ## 隐私
 
 登录态只保存在本地。不要提交 `.treehole-session.json`、复制出来的 cookie、OAuth callback code、APK、解包产物、下载的工具、个人身份名或账号名。
