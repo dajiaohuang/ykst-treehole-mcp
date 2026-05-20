@@ -482,9 +482,50 @@ server.registerTool("treehole_update_setting", {
 });
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("ykst-treehole-mcp running on stdio");
+  const args = process.argv.slice(2);
+  const portArg = args.indexOf("--port");
+  const port = portArg >= 0 ? parseInt(args[portArg + 1], 10) : null;
+
+  if (port) {
+    const { StreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
+    const { createMcpExpressApp } = require("@modelcontextprotocol/sdk/server/express.js");
+
+    const app = createMcpExpressApp();
+
+    app.get("/health", (_req, res) => {
+      res.json({ status: "ok" });
+    });
+
+    app.post("/mcp", async (req, res) => {
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      try {
+        await server.connect(transport);
+        await transport.handleRequest(req, res, req.body);
+        res.on("close", () => {
+          transport.close().catch(() => {});
+        });
+      } catch (error) {
+        console.error("MCP request error:", error);
+        if (!res.headersSent) {
+          res.status(500).json({
+            jsonrpc: "2.0",
+            error: { code: -32603, message: "Internal server error" },
+            id: null,
+          });
+        }
+      }
+    });
+
+    app.listen(port, () => {
+      console.error(`ykst-treehole-mcp HTTP transport on http://localhost:${port}/mcp`);
+    });
+  } else {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("ykst-treehole-mcp running on stdio");
+  }
 }
 
 main().catch((error) => {
