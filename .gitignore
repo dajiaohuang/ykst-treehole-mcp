@@ -8,6 +8,7 @@ npm-debug.log*
 
 # Local browser/login state
 .tmp-chrome-login/
+.tmp-chrome-login*/
 
 # Reverse-engineering inputs, outputs, and downloaded tools
 *.apk
@@ -18,3 +19,6 @@ _publish/
 # Build/test outputs
 coverage/
 dist/
+
+# Snapshot workspace (runner, data, viewer)
+_snapshot/

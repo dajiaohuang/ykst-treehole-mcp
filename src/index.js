@@ -23,6 +23,19 @@ function requireConfirm(confirm, action) {
   }
 }
 
+async function previewOrRun(confirm, action, payload, run) {
+  if (confirm === true) {
+    return json(await run());
+  }
+  return json({
+    mode: "preview",
+    action,
+    confirmRequired: true,
+    payload,
+    nextStep: "Review payload. Edit arguments if needed, then rerun with confirm: true to send.",
+  });
+}
+
 const rateTypeSchema = z.enum(["normal", "like", "hate"]);
 const reportTargetSchema = z.enum(["thread", "post"]);
 const reportTypeSchema = z.enum(["normal", "politics", "porn", "contact", "abuse", "ky"]);
@@ -143,8 +156,12 @@ server.registerTool("treehole_set_active_identity", {
     confirm: z.boolean().optional(),
   },
 }, async ({ identityId, confirm }) => {
-  requireConfirm(confirm, "treehole_set_active_identity");
-  return json(await client.setActiveIdentity(identityId));
+  return previewOrRun(
+    confirm,
+    "treehole_set_active_identity",
+    { identityId },
+    async () => client.setActiveIdentity(identityId),
+  );
 });
 
 server.registerTool("treehole_create_identity", {
@@ -153,8 +170,12 @@ server.registerTool("treehole_create_identity", {
     confirm: z.boolean().optional(),
   },
 }, async ({ confirm }) => {
-  requireConfirm(confirm, "treehole_create_identity");
-  return json(await client.createIdentity());
+  return previewOrRun(
+    confirm,
+    "treehole_create_identity",
+    {},
+    async () => client.createIdentity(),
+  );
 });
 
 server.registerTool("treehole_disable_identity", {
@@ -164,8 +185,12 @@ server.registerTool("treehole_disable_identity", {
     confirm: z.boolean().optional(),
   },
 }, async ({ identityId, confirm }) => {
-  requireConfirm(confirm, "treehole_disable_identity");
-  return json(await client.disableIdentity(identityId));
+  return previewOrRun(
+    confirm,
+    "treehole_disable_identity",
+    { identityId },
+    async () => client.disableIdentity(identityId),
+  );
 });
 
 server.registerTool("treehole_list_latest_threads", {
@@ -246,8 +271,12 @@ server.registerTool("treehole_create_thread", {
     confirm: z.boolean().optional(),
   },
 }, async ({ confirm, ...args }) => {
-  requireConfirm(confirm, "treehole_create_thread");
-  return json(await client.createThread(args));
+  return previewOrRun(
+    confirm,
+    "treehole_create_thread",
+    args,
+    async () => client.createThread(args),
+  );
 });
 
 server.registerTool("treehole_reply_thread", {
@@ -261,8 +290,12 @@ server.registerTool("treehole_reply_thread", {
     confirm: z.boolean().optional(),
   },
 }, async ({ confirm, ...args }) => {
-  requireConfirm(confirm, "treehole_reply_thread");
-  return json(await client.replyThread(args));
+  return previewOrRun(
+    confirm,
+    "treehole_reply_thread",
+    args,
+    async () => client.replyThread(args),
+  );
 });
 
 server.registerTool("treehole_delete_thread", {
@@ -272,8 +305,12 @@ server.registerTool("treehole_delete_thread", {
     confirm: z.boolean().optional(),
   },
 }, async ({ threadId, confirm }) => {
-  requireConfirm(confirm, "treehole_delete_thread");
-  return json(await client.deleteThread(threadId));
+  return previewOrRun(
+    confirm,
+    "treehole_delete_thread",
+    { threadId },
+    async () => client.deleteThread(threadId),
+  );
 });
 
 server.registerTool("treehole_delete_post", {
@@ -283,8 +320,12 @@ server.registerTool("treehole_delete_post", {
     confirm: z.boolean().optional(),
   },
 }, async ({ postId, confirm }) => {
-  requireConfirm(confirm, "treehole_delete_post");
-  return json(await client.deletePost(postId));
+  return previewOrRun(
+    confirm,
+    "treehole_delete_post",
+    { postId },
+    async () => client.deletePost(postId),
+  );
 });
 
 server.registerTool("treehole_rate_thread", {
@@ -356,8 +397,12 @@ server.registerTool("treehole_report", {
     confirm: z.boolean().optional(),
   },
 }, async ({ confirm, ...args }) => {
-  requireConfirm(confirm, "treehole_report");
-  return json(await client.putReport(args));
+  return previewOrRun(
+    confirm,
+    "treehole_report",
+    args,
+    async () => client.putReport(args),
+  );
 });
 
 server.registerTool("treehole_get_unread_notification_count", {
@@ -412,8 +457,12 @@ server.registerTool("treehole_put_subscribe", {
     confirm: z.boolean().optional(),
   },
 }, async ({ confirm, ...args }) => {
-  requireConfirm(confirm, "treehole_put_subscribe");
-  return json(await client.putSubscribe(args));
+  return previewOrRun(
+    confirm,
+    "treehole_put_subscribe",
+    args,
+    async () => client.putSubscribe(args),
+  );
 });
 
 server.registerTool("treehole_check_in", {
@@ -472,8 +521,12 @@ server.registerTool("treehole_update_setting", {
     confirm: z.boolean().optional(),
   },
 }, async ({ confirm, ...args }) => {
-  requireConfirm(confirm, "treehole_update_setting");
-  return json(await client.updateSetting(args));
+  return previewOrRun(
+    confirm,
+    "treehole_update_setting",
+    args,
+    async () => client.updateSetting(args),
+  );
 });
 
 server.registerResource("treehole_resource_auth_status", "treehole://auth/status", {

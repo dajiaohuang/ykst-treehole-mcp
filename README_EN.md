@@ -9,6 +9,7 @@ MCP server for Treehole / YKST (`web.treehole.space` / `treehole.space`). It wra
 - One-command browser login: the script opens an isolated Chrome window, waits until jAccount redirects to a URL containing `code=...`, exchanges the code, and saves the local session.
 - 51 MCP tools for auth, site metadata, categories, tags, identities, threads, posts, notifications, subscriptions, upload/download URLs, check-in, settings, reports, ratings, favorites, and appreciation.
 - Write operations require `confirm: true`.
+- A selected subset of write tools now supports preview-first mode (see below).
 - Stdio transport for normal MCP clients and optional Streamable HTTP transport for Claude Code or other HTTP clients.
 - Session and reverse-engineering artifacts are ignored by git.
 
@@ -176,6 +177,24 @@ Account utilities:
 - `treehole_get_punishments`
 - `treehole_update_setting`
 
+## Preview-First Write Flow
+
+For the tools below:
+
+- `treehole_create_thread`
+- `treehole_reply_thread`
+- `treehole_delete_thread`
+- `treehole_delete_post`
+- `treehole_report`
+- `treehole_put_subscribe`
+- `treehole_set_active_identity`
+- `treehole_create_identity`
+- `treehole_disable_identity`
+- `treehole_update_setting`
+
+Calling without `confirm: true` returns a structured preview payload (`mode: "preview"`) and does not execute a remote write.
+To actually send the request, rerun with the same arguments and `confirm: true`.
+
 ## Bundled Skill
 
 This repository includes a Codex skill:
@@ -199,6 +218,7 @@ The ignored local artifacts include:
 - `_external/`
 - `_tools/`
 - `_publish/`
+- `_snapshot/`
 
 ## Development
 

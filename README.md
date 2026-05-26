@@ -176,6 +176,24 @@ HTTP 客户端示例：
 - `treehole_get_punishments`
 - `treehole_update_setting`
 
+## Preview-First 写操作流程
+
+以下 10 个写操作现在支持“先预览，再确认发送”：
+
+- `treehole_create_thread`
+- `treehole_reply_thread`
+- `treehole_delete_thread`
+- `treehole_delete_post`
+- `treehole_report`
+- `treehole_put_subscribe`
+- `treehole_set_active_identity`
+- `treehole_create_identity`
+- `treehole_disable_identity`
+- `treehole_update_setting`
+
+调用这些工具时，如果不传 `confirm: true`，服务器会返回 `mode: "preview"` 的结构化预览结果，不会执行远端写入。
+确认参数无误后，使用相同参数并加上 `confirm: true` 重新调用，才会真正执行。
+
 ## 内置 Skill
 
 仓库里包含一套 Codex skill：
@@ -199,6 +217,7 @@ HTTP 客户端示例：
 - `_external/`
 - `_tools/`
 - `_publish/`
+- `_snapshot/`
 
 ## 开发验证
 
