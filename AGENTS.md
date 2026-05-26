@@ -40,3 +40,16 @@ This repository contains a Node.js MCP server for Treehole/YKST gRPC-Web APIs.
 ## Verification
 
 Run `npm run smoke` after changing RPC/auth/session behavior. For tool registration changes, instantiate the MCP server or run an SDK list-tools check before publishing.
+
+## Historical Lessons (Codex Sessions, 2026-05-20 to 2026-05-21)
+
+- Keep `npm run login` as the primary login path. It is designed to watch an isolated Chrome tab URL and exchange the production callback URL safely.
+- Do not rely on local callback URLs for OAuth exchange by default. Codes from local callback testing can fail with `OAuthLogin` 401 when redirect URI validation expects `https://web.treehole.space/auth/jaccount`.
+- Be careful with OAuth URL launching on Windows: unescaped `&` in shell commands can strip parameters and trigger `Missing response_type parameter value`. Prefer URL construction via `new URL(...)` and process spawn args.
+- Keep legacy login paths (`login-capture`, `login-local-callback`, `save-token`) as fallback/debug options, not the default onboarding flow.
+- Preserve the current default RPC host (`https://proxy.treehole.qaq.ac.cn`) unless verification shows a change. Earlier proxy endpoints had CORS/SSL breakage.
+- gRPC-Web transport should keep lightweight retry for transient network failures only (for example `TypeError: fetch failed`), and should not retry business-logic errors.
+- For write operations (`PutThread`, `PutPost`), include active identity message and `identityCode`. Using only active identity state can still fail with identity-not-found errors.
+- `GetUserStats` may be unavailable on some deployments; keep using `GetProfile.stat` as the fallback data source.
+- There is no dedicated single-identity RPC; identity lookup should be derived from `GetProfile` (`id`/`code`/`active` filters).
+- Keep `treehole_auth_status` sanitized: never expose token preview, raw token, full callback URL, or absolute session path in tool output.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
+const { McpServer, ResourceTemplate } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const z = require("zod/v4");
 const client = require("./treeholeClient");
@@ -27,6 +27,24 @@ const rateTypeSchema = z.enum(["normal", "like", "hate"]);
 const reportTargetSchema = z.enum(["thread", "post"]);
 const reportTypeSchema = z.enum(["normal", "politics", "porn", "contact", "abuse", "ky"]);
 const notificationTypeSchema = z.enum(["all", "thread_replied", "post_replied", "system"]);
+
+function jsonResource(uri, data) {
+  return {
+    contents: [{
+      uri,
+      mimeType: "application/json",
+      text: JSON.stringify(data, null, 2),
+    }],
+  };
+}
+
+function parsePositiveInt(value, fieldName) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${fieldName} must be a positive integer`);
+  }
+  return parsed;
+}
 
 server.registerTool("treehole_auth_status", {
   description: "Show whether a Treehole session is configured without revealing the token.",
@@ -150,13 +168,6 @@ server.registerTool("treehole_disable_identity", {
   return json(await client.disableIdentity(identityId));
 });
 
-server.registerTool("treehole_get_thread_identities", {
-  description: "Get identities participating in a thread, when the server allows it.",
-  inputSchema: {
-    threadId: z.number().int().positive(),
-  },
-}, async ({ threadId }) => json(await client.getThreadUserIdentities(threadId)));
-
 server.registerTool("treehole_list_latest_threads", {
   description: "List latest threads. Use nextCursor for pagination.",
   inputSchema: {
@@ -208,28 +219,12 @@ server.registerTool("treehole_list_user_participated_threads", {
   },
 }, async (args) => json(await client.userParticipatedThreads(args)));
 
-server.registerTool("treehole_search_threads", {
-  description: "Search threads by keyword.",
-  inputSchema: {
-    keyword: z.string().min(1),
-    limit: z.number().int().min(1).max(50).optional(),
-    offset: z.number().int().min(0).optional(),
-  },
-}, async (args) => json(await client.searchThreads(args)));
-
 server.registerTool("treehole_get_thread", {
   description: "Get a thread by id.",
   inputSchema: {
     threadId: z.number().int().positive(),
   },
 }, async ({ threadId }) => json(await client.getThread(threadId)));
-
-server.registerTool("treehole_get_post", {
-  description: "Get one post/reply by post id.",
-  inputSchema: {
-    postId: z.number().int().positive(),
-  },
-}, async ({ postId }) => json(await client.getPost(postId)));
 
 server.registerTool("treehole_get_thread_posts", {
   description: "Get posts in a thread. Use nextCursor for pagination.",
@@ -479,6 +474,251 @@ server.registerTool("treehole_update_setting", {
 }, async ({ confirm, ...args }) => {
   requireConfirm(confirm, "treehole_update_setting");
   return json(await client.updateSetting(args));
+});
+
+server.registerResource("treehole_resource_auth_status", "treehole://auth/status", {
+  title: "Treehole Auth Status",
+  description: "Current local authentication summary without exposing token content.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), authSummary()));
+
+server.registerResource("treehole_resource_site_config", "treehole://site/config", {
+  title: "Treehole Site Config",
+  description: "Server-side site configuration snapshot.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.getSiteConfig()));
+
+server.registerResource("treehole_resource_categories", "treehole://site/categories", {
+  title: "Treehole Categories",
+  description: "Category list snapshot for navigation and posting decisions.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.listCategories()));
+
+server.registerResource("treehole_resource_tags_browsable", "treehole://site/tags/browsable", {
+  title: "Treehole Browsable Tags",
+  description: "Browsable tag list snapshot.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.listBrowsableTags()));
+
+server.registerResource("treehole_resource_profile", "treehole://user/profile", {
+  title: "Treehole Profile",
+  description: "Logged-in user profile snapshot.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.profile()));
+
+server.registerResource("treehole_resource_identities", "treehole://user/identities", {
+  title: "Treehole Identities",
+  description: "Identity list snapshot for the logged-in user.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.listIdentities()));
+
+server.registerResource("treehole_resource_active_identity", "treehole://user/identity/active", {
+  title: "Treehole Active Identity",
+  description: "Active identity snapshot.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.getActiveIdentity()));
+
+server.registerResource("treehole_resource_latest_threads", "treehole://threads/latest", {
+  title: "Latest Threads Snapshot",
+  description: "Default latest-thread feed snapshot (limit 20).",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.latestThreads({ limit: 20 })));
+
+server.registerResource("treehole_resource_hot_threads", "treehole://threads/hot", {
+  title: "Hot Threads Snapshot",
+  description: "Default hot-thread feed snapshot (limit 20).",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.hotThreads({ limit: 20 })));
+
+server.registerResource("treehole_resource_user_stats", "treehole://user/stats", {
+  title: "Treehole User Stats",
+  description: "User stats snapshot (profile-backed fallback).",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.getUserStats()));
+
+server.registerResource("treehole_resource_punishments", "treehole://user/punishments", {
+  title: "Treehole Punishments",
+  description: "Punishment/ban snapshot for logged-in user.",
+  mimeType: "application/json",
+}, async (uri) => jsonResource(uri.toString(), await client.getPunishments()));
+
+server.registerResource(
+  "treehole_resource_thread",
+  new ResourceTemplate("treehole://thread/{threadId}", { list: undefined }),
+  {
+    title: "Thread By Id",
+    description: "Read one thread by numeric threadId.",
+    mimeType: "application/json",
+  },
+  async (uri, variables) => {
+    const threadId = parsePositiveInt(variables.threadId, "threadId");
+    return jsonResource(uri.toString(), await client.getThread(threadId));
+  },
+);
+
+server.registerResource(
+  "treehole_resource_thread_posts",
+  new ResourceTemplate("treehole://thread/{threadId}/posts", { list: undefined }),
+  {
+    title: "Thread Posts By Thread Id",
+    description: "Read posts for one thread with default paging.",
+    mimeType: "application/json",
+  },
+  async (uri, variables) => {
+    const threadId = parsePositiveInt(variables.threadId, "threadId");
+    return jsonResource(uri.toString(), await client.getThreadPosts({ threadId }));
+  },
+);
+
+server.registerResource(
+  "treehole_resource_subscribe",
+  new ResourceTemplate("treehole://thread/{threadId}/subscribe", { list: undefined }),
+  {
+    title: "Subscribe State By Thread Id",
+    description: "Read subscription state for one thread.",
+    mimeType: "application/json",
+  },
+  async (uri, variables) => {
+    const threadId = parsePositiveInt(variables.threadId, "threadId");
+    return jsonResource(uri.toString(), await client.getSubscribe(threadId));
+  },
+);
+
+server.registerResource(
+  "treehole_resource_identity_by_code",
+  new ResourceTemplate("treehole://identity/{code}", {
+    list: async () => {
+      const { identities } = await client.listIdentities();
+      return {
+        resources: (identities || [])
+          .filter((identity) => identity.code)
+          .map((identity) => ({
+            uri: `treehole://identity/${encodeURIComponent(identity.code)}`,
+            name: identity.code,
+            mimeType: "application/json",
+            description: "Identity lookup by identity code",
+          })),
+      };
+    },
+  }),
+  {
+    title: "Identity By Code",
+    description: "Read one identity by code.",
+    mimeType: "application/json",
+  },
+  async (uri, variables) => {
+    const code = decodeURIComponent(String(variables.code || ""));
+    if (!code) throw new Error("code is required");
+    return jsonResource(uri.toString(), await client.getIdentity({ code }));
+  },
+);
+
+server.registerPrompt("treehole_prompt_read_thread", {
+  title: "Read Thread Summary Prompt",
+  description: "Generate a reusable instruction message to analyze a thread via resources.",
+  argsSchema: {
+    threadId: z.string().min(1),
+    includePosts: z.string().optional(),
+    focus: z.string().optional(),
+  },
+}, async ({ threadId, includePosts = "true", focus = "key points, sentiment, and action items" }) => {
+  const parsedThreadId = parsePositiveInt(threadId, "threadId");
+  const withPosts = String(includePosts).toLowerCase() !== "false";
+  const threadUri = `treehole://thread/${parsedThreadId}`;
+  const postsUri = `treehole://thread/${parsedThreadId}/posts`;
+  return {
+    messages: [{
+      role: "user",
+      content: {
+        type: "text",
+        text: [
+          "Read and summarize this Treehole discussion.",
+          `Primary resource: ${threadUri}`,
+          withPosts ? `Posts resource: ${postsUri}` : "Posts resource: skip",
+          `Focus: ${focus}`,
+          "Output sections: context, major viewpoints, risks, unresolved questions, suggested follow-up.",
+        ].join("\n"),
+      },
+    }],
+  };
+});
+
+server.registerPrompt("treehole_prompt_draft_thread", {
+  title: "Draft Thread Prompt",
+  description: "Generate a draft title/content before calling treehole_create_thread.",
+  argsSchema: {
+    categoryId: z.string().min(1),
+    topic: z.string().min(1),
+    tone: z.string().optional(),
+    constraints: z.string().optional(),
+  },
+}, async ({ categoryId, topic, tone = "clear and concise", constraints = "no private data, no policy violations" }) => {
+  const parsedCategoryId = parsePositiveInt(categoryId, "categoryId");
+  return {
+    messages: [{
+      role: "user",
+      content: {
+        type: "text",
+        text: [
+          "Draft a Treehole thread for posting.",
+          `CategoryId: ${parsedCategoryId}`,
+          `Topic: ${topic}`,
+          `Tone: ${tone}`,
+          `Constraints: ${constraints}`,
+          "Return JSON with keys: title, content.",
+        ].join("\n"),
+      },
+    }],
+  };
+});
+
+server.registerPrompt("treehole_prompt_safe_write_check", {
+  title: "Safe Write Checklist Prompt",
+  description: "Checklist prompt for any Treehole write operation requiring confirm: true.",
+  argsSchema: {
+    operation: z.string().min(1),
+    target: z.string().optional(),
+    payloadSummary: z.string().optional(),
+  },
+}, async ({ operation, target = "n/a", payloadSummary = "n/a" }) => {
+  return {
+    messages: [{
+      role: "user",
+      content: {
+        type: "text",
+        text: [
+          "Prepare a safe execution checklist before calling a write tool.",
+          `Operation: ${operation}`,
+          `Target: ${target}`,
+          `Payload summary: ${payloadSummary}`,
+          "Checklist: validate target, validate identity, avoid private data leakage, confirm reversibility, then call tool with confirm=true.",
+        ].join("\n"),
+      },
+    }],
+  };
+});
+
+server.registerPrompt("treehole_prompt_login_recovery", {
+  title: "Login Recovery Prompt",
+  description: "Troubleshooting prompt for common Treehole login and session issues.",
+  argsSchema: {
+    symptom: z.string().optional(),
+  },
+}, async ({ symptom = "login failed or session missing" }) => {
+  return {
+    messages: [{
+      role: "user",
+      content: {
+        type: "text",
+        text: [
+          "Diagnose and recover Treehole login flow issues.",
+          `Symptom: ${symptom}`,
+          "Checklist: verify npm run login flow, verify callback URL contains code, verify RPC host, verify local session file, re-run smoke.",
+          "Do not expose raw token, callback code, or full local paths in output.",
+        ].join("\n"),
+      },
+    }],
+  };
 });
 
 async function main() {
